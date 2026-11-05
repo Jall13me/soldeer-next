@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model HeroBanner {
+  id          String   @id @default(cuid())
+  title       String?
+  subtitle    String?
+  imageUrl    String
+  linkUrl     String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  products    Product[]
+  createdAt   DateTime  @default(now())
+}
+
+model Product {
+  id             String       @id @default(cuid())
+  title          String
+  slug           String       @unique
+  description    String?
+  price          Decimal
+  offerPrice     Decimal?
+  sku            String?
+  stock          Int          @default(10)
+  images         String[]
+  isPublished    Boolean      @default(true)
+  
+  // Campos técnicos de ingeniería para soldadura
+  maxAmperage    String?
+  workCycle      String?
+  powerSupply    String?
+  weldingProcess String?
+  presentation   String?
+  dimensions     String?
+
+  categoryId     String
+  category       Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime     @default(now())
+  orderItems     OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+  price     Decimal
+}
