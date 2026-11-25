@@ -1,20 +1,34 @@
+export interface ProductCategory {
+  name: string;
+  slug: string;
+}
+
 export interface Product {
   id: string;
   title: string;
   slug: string;
-  description?: string | null;
+  description: string | null;
   price: number;
-  sku: string;
-  categoryName: string;
+  offerPrice: number | null;
+  sku: string | null;
+  stock: number;
+  /** URLs públicas. Vacío si el producto aún no tiene fotos. */
   images: string[];
-  
-  // Atributos opcionales (Solo se muestran si el producto los tiene)
-  maxAmperage?: string | null;      // Ej: "500 AMP"
-  workCycle?: string | null;        // Ej: "500A - 60%"[cite: 8]
-  powerSupply?: string | null;      // Ej: "Trifásica"[cite: 8]
-  weldingProcess?: string | null;   // Ej: "MIG/MAG / MMA"[cite: 8]
-  presentation?: string | null;     // Ej: "Rollo de 15 Kg" (Para alambres)
-  dimensions?: string | null;       // Ej: "115x99 mm" (Para accesorios/lentes)
-  
+  isPublished: boolean;
   isFeatured: boolean;
+  category: ProductCategory;
+
+  // Atributos técnicos opcionales (solo se muestran si existen)
+  maxAmperage: string | null;
+  workCycle: string | null;
+  powerSupply: string | null;
+  weldingProcess: string | null;
+  presentation: string | null;
+  dimensions: string | null;
+
+  createdAt: Date;
 }
+
+export type CreateProductDTO = Omit<Product, 'id' | 'createdAt' | 'category' | 'stock' | 'isPublished'> & {
+  category: ProductCategory;
+};

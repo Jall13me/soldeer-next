@@ -1,10 +1,11 @@
-'use client'
+'use client';
 
 export default function PrintButton() {
   return (
     <button
+      type="button"
       onClick={() => window.print()}
-      className="bg-[#0d9488] hover:bg-[#0f766e] text-white font-bold px-6 py-3 rounded-xl text-xs shadow transition"
+      className="rounded-xl bg-brand px-6 py-3 text-xs font-bold text-white shadow transition hover:bg-brand-dark"
     >
       🖨️ Imprimir / Guardar Ficha en PDF
     </button>

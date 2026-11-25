@@ -1,57 +1,34 @@
 import Link from 'next/link';
-
-interface CategoryShortcut {
-  title: string;
-  slug: string;
-  imageUrl?: string;
-}
-
-const DEFAULT_CATEGORIES: CategoryShortcut[] = [
-  { title: 'Torchas', slug: 'torchas' },
-  { title: 'Consumibles para Soldadura', slug: 'consumibles' },
-  { title: 'Corte por Plasma Manual', slug: 'corte-plasma' },
-  { title: 'Elementos de Protección Personal', slug: 'mascaras' },
-  { title: 'Máquinas para Soldar', slug: 'maquinas' },
-];
+import { HOME_SHORTCUTS } from '@/config/categoriesConfig';
 
 export function ProductCategoriesGrid() {
   return (
-    <section className="py-16 bg-white border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-6">
-        
-        {/* Encabezado de Sección Estilo ESAB */}
-        <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">Líneas de Productos</h2>
-          <p className="text-xs text-slate-500 mt-1">Explora nuestras categorías principales con acceso rápido</p>
-          <div className="w-16 h-1 bg-[#0d9488] mx-auto mt-3 rounded-full"></div>
+    <section className="border-b border-slate-200 bg-white py-16">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mb-12 text-center">
+          <h2 className="text-2xl font-extrabold text-slate-900 md:text-3xl">Líneas de Productos</h2>
+          <p className="mt-1 text-xs text-slate-500">Explora nuestras categorías principales con acceso rápido</p>
+          <div className="mx-auto mt-3 h-1 w-16 rounded-full bg-brand" />
         </div>
 
-        {/* Grilla de Iconos Circulares */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8 items-center justify-center">
-          {DEFAULT_CATEGORIES.map((cat, idx) => (
+        <div className="grid grid-cols-2 items-center justify-center gap-8 sm:grid-cols-3 md:grid-cols-5">
+          {HOME_SHORTCUTS.map((shortcut) => (
             <Link
-              key={idx}
-              href={`/catalog?category=${cat.slug}`}
-              className="group flex flex-col items-center text-center space-y-3"
+              key={shortcut.slug}
+              href={`/catalog?category=${shortcut.slug}`}
+              className="group flex flex-col items-center space-y-3 text-center"
             >
-              {/* Contenedor Circular */}
-              <div className="w-32 h-32 md:w-36 md:h-36 rounded-full bg-slate-50 border-2 border-slate-200 group-hover:border-[#0d9488] transition-all duration-300 shadow-sm group-hover:shadow-lg flex items-center justify-center overflow-hidden p-3 relative">
-                
-                {/* Fondo Interno Circular con Efecto Hover */}
-                <div className="absolute inset-2 rounded-full bg-gradient-to-b from-slate-100 to-slate-200 flex items-center justify-center text-slate-700 font-extrabold text-xs uppercase tracking-wider group-hover:bg-[#0d9488]/10 group-hover:text-[#0d9488] transition-colors duration-300">
-                  <span className="px-2 text-center line-clamp-2">{cat.title}</span>
+              <div className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-2 border-slate-200 bg-slate-50 p-3 shadow-sm transition-all duration-300 group-hover:border-brand group-hover:shadow-lg md:h-36 md:w-36">
+                <div className="absolute inset-2 flex items-center justify-center rounded-full bg-gradient-to-b from-slate-100 to-slate-200 text-xs font-extrabold uppercase tracking-wider text-slate-700 transition-colors duration-300 group-hover:bg-brand/10 group-hover:text-brand">
+                  <span className="line-clamp-2 px-2 text-center">{shortcut.title}</span>
                 </div>
-
               </div>
-
-              {/* Título de la Categoría */}
-              <span className="font-bold text-slate-800 text-xs md:text-sm group-hover:text-[#0d9488] transition-colors">
-                {cat.title}
+              <span className="text-xs font-bold text-slate-800 transition-colors group-hover:text-brand md:text-sm">
+                {shortcut.title}
               </span>
             </Link>
           ))}
         </div>
-
       </div>
     </section>
   );

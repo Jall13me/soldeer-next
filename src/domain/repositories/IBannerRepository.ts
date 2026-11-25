@@ -1,9 +1,11 @@
-import { HeroBanner, CreateBannerDTO } from '../entities/HeroBanner';
+import { CreateBannerDTO, HeroBanner } from '../entities/HeroBanner';
 
 export interface IBannerRepository {
   getAll(): Promise<HeroBanner[]>;
-  getActiveBanners(): Promise<HeroBanner[]>;
+  getActive(): Promise<HeroBanner[]>;
+  getById(id: string): Promise<HeroBanner | null>;
+  getNextOrder(): Promise<number>;
   create(data: CreateBannerDTO): Promise<HeroBanner>;
   delete(id: string): Promise<void>;
-  toggleStatus(id: string, isActive: boolean): Promise<HeroBanner>;
+  setActive(id: string, isActive: boolean): Promise<void>;
 }

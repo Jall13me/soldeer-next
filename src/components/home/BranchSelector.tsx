@@ -1,108 +1,82 @@
-'use client'
+'use client';
 
 import { useState } from 'react';
+import type { Branch } from '@/config/branches';
+import { cn } from '@/lib/cn';
 
-interface Branch {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  mapSrc: string;
-}
+export function BranchSelector({ branches }: { branches: readonly Branch[] }) {
+  const [selectedId, setSelectedId] = useState(branches[0]?.id);
+  const selected = branches.find((branch) => branch.id === selectedId) ?? branches[0];
 
-const BRANCHES: Branch[] = [
-  {
-    id: 'central',
-    name: 'Sucursal Central',
-    address: 'Av. Beni / Zona Norte, Santa Cruz de la Sierra',
-    phone: '75353583',
-    mapSrc: 'https://maps.google.com/maps?q=-17.7598701,-63.1727335&z=17&output=embed'
-  },
-  {
-    id: 'altosanpedro',
-    name: 'Sucursal Alto San Pedro',
-    address: 'Zona Alto San Pedro, Santa Cruz de la Sierra',
-    phone: '75353583',
-    mapSrc: 'https://maps.google.com/maps?q=-17.814023,-63.1863773&z=17&output=embed'
-  },
-  {
-    id: 'cochabamba',
-    name: 'Sucursal Cochabamba',
-    address: 'Cochabamba, Bolivia',
-    phone: '75353583',
-    mapSrc: 'https://maps.google.com/maps?q=-17.392182,-66.2012549&z=17&output=embed'
-  }
-];
-
-export function BranchSelector() {
-  const [selectedBranch, setSelectedBranch] = useState<Branch>(BRANCHES[0]);
+  if (!selected) return null;
 
   return (
-    <div className="max-w-7xl mx-auto px-6">
-      
-      {/* Cabecera y Botones Selectoras */}
-      <div className="text-center mb-10">
-        <span className="text-[#0d9488] font-bold text-xs uppercase tracking-wider bg-teal-50 px-3.5 py-1.5 rounded-full border border-teal-100">
+    <div className="mx-auto max-w-7xl px-6">
+      <div className="mb-10 text-center">
+        <span className="rounded-full border border-teal-100 bg-teal-50 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-brand">
           Atención Presencial
         </span>
-        <h2 className="text-3xl font-extrabold text-slate-900 mt-3">Nuestras Sucursales</h2>
-        <p className="text-slate-600 text-sm mt-1">Selecciona una sucursal para visualizar su ubicación exacta, dirección y líneas de contacto.</p>
-        
-        {/* Pestañas de Sucursales */}
-        <div className="flex flex-wrap justify-center gap-3 mt-6">
-          {BRANCHES.map((branch) => (
+        <h2 className="mt-3 text-3xl font-extrabold text-slate-900">Nuestras Sucursales</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Selecciona una sucursal para visualizar su ubicación exacta, dirección y líneas de contacto.
+        </p>
+
+        <div className="mt-6 flex flex-wrap justify-center gap-3" role="group" aria-label="Sucursales">
+          {branches.map((branch) => (
             <button
               key={branch.id}
-              onClick={() => setSelectedBranch(branch)}
-              className={`px-6 py-3 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-2 ${
-                selectedBranch.id === branch.id
-                  ? 'bg-[#0d9488] text-white shadow-md scale-105'
-                  : 'bg-white text-slate-700 border border-slate-200 hover:border-[#0d9488] hover:text-[#0d9488]'
-              }`}
+              type="button"
+              onClick={() => setSelectedId(branch.id)}
+              aria-pressed={branch.id === selected.id}
+              className={cn(
+                'flex items-center gap-2 rounded-xl px-6 py-3 text-xs font-bold shadow-sm transition',
+                branch.id === selected.id
+                  ? 'scale-105 bg-brand text-white shadow-md'
+                  : 'border border-slate-200 bg-white text-slate-700 hover:border-brand hover:text-brand',
+              )}
             >
-              <span>📍</span> {branch.name}
+              <span aria-hidden="true">📍</span> {branch.name}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Tarjeta Dinámica de la Sucursal Seleccionada */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-center bg-white p-8 md:p-12 rounded-3xl shadow-sm border border-slate-200">
+      <div className="grid grid-cols-1 items-center gap-12 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm md:grid-cols-3 md:p-12">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#0d9488] bg-teal-50 px-3 py-1 rounded-md border border-teal-100">
+          <span className="rounded-md border border-teal-100 bg-teal-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
             Sucursal Activa
           </span>
-          <h3 className="text-2xl font-black text-slate-900 mt-3">{selectedBranch.name}</h3>
-          <p className="text-slate-600 text-sm mt-3 leading-relaxed">
+          <h3 className="mt-3 text-2xl font-black text-slate-900">{selected.name}</h3>
+          <p className="mt-3 text-sm leading-relaxed text-slate-600">
             Visítanos para recibir asesoramiento técnico personalizado, demostraciones de equipos y entrega inmediata de consumibles industriales.
           </p>
-          <div className="mt-6 space-y-3 text-sm text-slate-700 border-t pt-4 border-slate-100">
+          <div className="mt-6 space-y-3 border-t border-slate-100 pt-4 text-sm text-slate-700">
             <p className="flex items-start gap-2">
-              <span className="font-bold text-[#0d9488]">📍 Dirección:</span> 
-              <span>{selectedBranch.address}</span>
+              <span className="font-bold text-brand">📍 Dirección:</span>
+              <span>{selected.address}</span>
             </p>
             <p className="flex items-center gap-2">
-              <span className="font-bold text-[#0d9488]">📞 Teléfono:</span> 
-              <span>{selectedBranch.phone}</span>
+              <span className="font-bold text-brand">📞 Teléfono:</span>
+              <a href={`tel:+591${selected.phone}`} className="hover:underline">
+                {selected.phone}
+              </a>
             </p>
           </div>
         </div>
 
-        {/* Mapa Dinámico con coordenadas exactas */}
-        <div className="md:col-span-2 h-80 rounded-2xl overflow-hidden shadow-inner border border-slate-200">
+        <div className="h-80 overflow-hidden rounded-2xl border border-slate-200 shadow-inner md:col-span-2">
           <iframe
-            key={selectedBranch.id}
-            title={selectedBranch.name}
-            src={selectedBranch.mapSrc}
+            key={selected.id}
+            title={`Mapa: ${selected.name}`}
+            src={selected.mapSrc}
             width="100%"
             height="100%"
             style={{ border: 0 }}
-            allowFullScreen={false}
             loading="lazy"
-          ></iframe>
+            referrerPolicy="no-referrer-when-downgrade"
+          />
         </div>
       </div>
-
     </div>
   );
 }

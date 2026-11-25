@@ -1,16 +1,15 @@
-version: '3.8'
-
 services:
   soldeer-db:
     image: postgres:15-alpine
     container_name: soldeer_postgres
     restart: always
     environment:
-      POSTGRES_USER: soldeer_user
-      POSTGRES_PASSWORD: soldeer_password123
-      POSTGRES_DB: soldeer_db
+      POSTGRES_USER: ${POSTGRES_USER:-soldeer_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en tu archivo .env}
+      POSTGRES_DB: ${POSTGRES_DB:-soldeer_db}
     ports:
-      - "8090:5432" 
+      # Solo accesible desde tu máquina (antes quedaba expuesto a toda la red)
+      - "127.0.0.1:8090:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

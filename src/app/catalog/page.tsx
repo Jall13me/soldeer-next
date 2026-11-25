@@ -1,139 +1,148 @@
-import { prisma } from '@/lib/prisma';
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
+import { ProductCard } from '@/components/products/ProductCard';
 import { NAV_CATEGORIES } from '@/config/categoriesConfig';
+import { siteConfig } from '@/config/site';
+import { browseCatalog } from '@/infrastructure/container';
+import { cn } from '@/lib/cn';
 
-interface PageProps {
-  searchParams: Promise<{ category?: string }>;
-}
+export const metadata: Metadata = {
+  title: 'Catálogo de productos',
+  description: 'Máquinas de soldar, cortadoras de plasma, torchas y consumibles industriales en Bolivia.',
+};
 
-export default async function CatalogPage({ searchParams }: PageProps) {
-  const resolvedParams = await searchParams;
-  const categorySlug = resolvedParams.category;
+type SearchParams = Promise<{ category?: string | string[]; q?: string | string[] }>;
 
-  let targetCategoryName = '';
-  let categoryTitle = 'Catálogo General de Productos';
-  let categoryDescription = 'Equipos de soldadura, torchas, consumibles y accesorios industriales en Bolivia.';
+const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
-  if (categorySlug) {
-    for (const group of NAV_CATEGORIES) {
-      const sub = group.subcategories.find((s) => s.slug === categorySlug);
-      if (sub) {
-        targetCategoryName = sub.name;
-        categoryTitle = sub.name;
-        categoryDescription = sub.description || group.title;
-        break;
-      }
-    }
-  }
+async function CatalogContent({ searchParams }: { searchParams: SearchParams }) {
+  const params = await searchParams;
+  const categorySlug = first(params.category);
+  const search = first(params.q)?.trim().slice(0, 80);
 
-  // Consulta robusta: busca por coincidencia exacta o parcial en el nombre de la categoría o el slug
-  const products = await prisma.product.findMany({
-    where: categorySlug
-      ? {
-          OR: [
-            {
-              category: {
-                name: {
-                  equals: targetCategoryName,
-                  mode: 'insensitive',
-                },
-              },
-            },
-            {
-              category: {
-                slug: {
-                  contains: categorySlug,
-                  mode: 'insensitive',
-                },
-              },
-            },
-          ],
-        }
-      : {},
-    include: { category: true },
-    orderBy: { createdAt: 'desc' },
-  });
+  const result = await browseCatalog.browse({ categorySlug, search });
+  if (!result) notFound();
+
+  const { category, products } = result;
+  const activeGroup = category
+    ? NAV_CATEGORIES.find((g) => g.slug === category.slug || g.subcategories.some((s) => s.slug === category.slug))
+    : undefined;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-20">
-      
-      {/* Cabecera de Categoría */}
-      <section className="bg-slate-900 text-white py-16 px-6 text-center">
-        <div className="max-w-4xl mx-auto">
-          <span className="bg-[#0d9488] text-white text-xs font-bold uppercase px-3.5 py-1.5 rounded-full tracking-wider shadow">
+    <>
+      <section className="bg-slate-900 px-6 py-16 text-center text-white">
+        <div className="mx-auto max-w-4xl">
+          <span className="rounded-full bg-brand px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-white shadow">
             Soldeer Industrial B2B
           </span>
-          <h1 className="text-3xl md:text-5xl font-black mt-4 tracking-tight">
-            {categoryTitle}
+          <h1 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
+            {category?.title ?? 'Catálogo General de Productos'}
           </h1>
-          <p className="text-slate-300 text-sm md:text-base mt-3">
-            {categoryDescription}
+          <p className="mt-3 text-sm text-slate-300 md:text-base">
+            {category?.description ?? 'Equipos de soldadura, torchas, consumibles y accesorios industriales en Bolivia.'}
           </p>
         </div>
       </section>
 
-      {/* Listado de Productos */}
-      <div className="max-w-7xl mx-auto px-6 mt-12">
-        <div className="flex justify-between items-center mb-8 border-b pb-4">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Mostrando resultados ({products.length})
+      <div className="mx-auto mt-10 max-w-7xl px-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <nav aria-label="Filtrar por línea" className="flex flex-wrap gap-2">
+            <Link
+              href="/catalog"
+              className={cn(
+                'rounded-full border px-4 py-2 text-xs font-bold transition',
+                !category ? 'border-brand bg-brand text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-brand',
+              )}
+            >
+              Todos
+            </Link>
+            {NAV_CATEGORIES.map((group) => (
+              <Link
+                key={group.slug}
+                href={`/catalog?category=${group.slug}`}
+                className={cn(
+                  'rounded-full border px-4 py-2 text-xs font-bold transition',
+                  activeGroup?.slug === group.slug
+                    ? 'border-brand bg-brand text-white'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-brand',
+                )}
+              >
+                {group.title}
+              </Link>
+            ))}
+          </nav>
+
+          <form action="/catalog" method="get" role="search" className="flex gap-2">
+            {category && <input type="hidden" name="category" value={category.slug} />}
+            <input
+              type="search"
+              name="q"
+              defaultValue={search}
+              placeholder="Buscar por nombre o SKU"
+              aria-label="Buscar productos"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-brand focus:outline-none md:w-72"
+            />
+            <button type="submit" className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-700">
+              Buscar
+            </button>
+          </form>
+        </div>
+
+        <div className="mb-8 mt-6 flex items-center justify-between border-b pb-4">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            {products.length} {products.length === 1 ? 'resultado' : 'resultados'}
+            {search && ` para “${search}”`}
           </span>
-          <Link href="/" className="text-xs font-bold text-[#0d9488] hover:underline">
+          <Link href="/" className="text-xs font-bold text-brand hover:underline">
             ← Volver al Inicio
           </Link>
         </div>
 
         {products.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm max-w-xl mx-auto my-12">
-            <div className="text-4xl mb-3">📦</div>
-            <h3 className="text-lg font-bold text-slate-900">Sección en Actualización de Stock</h3>
-            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-              Pronto agregaremos los equipos y especificaciones técnicas para esta categoría. Si necesitas cotizar un modelo específico de manera urgente, contáctanos directamente.
+          <div className="mx-auto my-12 max-w-xl rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+            <div className="mb-3 text-4xl" aria-hidden="true">📦</div>
+            <h2 className="text-lg font-bold text-slate-900">
+              {search ? 'No encontramos coincidencias' : 'Sección en actualización de stock'}
+            </h2>
+            <p className="mt-2 text-xs leading-relaxed text-slate-500">
+              {search
+                ? 'Prueba con otra palabra o revisa el código SKU.'
+                : 'Pronto agregaremos equipos para esta categoría. Si necesitas cotizar un modelo específico, contáctanos directamente.'}
             </p>
-            <div className="mt-6 flex justify-center gap-4">
-              <Link href="/admin/products" className="bg-[#0d9488] text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow transition">
-                + Cargar Producto en Admin
-              </Link>
-              <Link href="/" className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-5 py-2.5 rounded-xl text-xs transition">
-                Ir al Inicio
+            <div className="mt-6 flex justify-center gap-3">
+              <a
+                href={`https://wa.me/${siteConfig.whatsapp}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-xl bg-brand px-5 py-2.5 text-xs font-bold text-white shadow transition hover:bg-brand-dark"
+              >
+                Consultar por WhatsApp
+              </a>
+              <Link href="/catalog" className="rounded-xl bg-slate-100 px-5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200">
+                Ver todo el catálogo
               </Link>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {products.map((prod) => (
-              <Link
-                key={prod.id}
-                href={`/products/${prod.slug}`}
-                className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-[#0d9488] transition group flex flex-col justify-between"
-              >
-                <div>
-                  <div className="h-56 bg-slate-100 overflow-hidden relative">
-                    <img
-                      src={prod.images[0]}
-                      alt={prod.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                    />
-                    {/* Corrección aplicada aquí: usando prod.category.name */}
-                    <span className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur text-white font-bold text-[10px] px-2.5 py-1 rounded-md uppercase tracking-wider">
-                      {prod.category?.name || 'Industrial'}
-                    </span>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="font-bold text-slate-900 text-lg group-hover:text-[#0d9488] transition">{prod.title}</h3>
-                    <p className="text-slate-500 text-xs mt-2 line-clamp-2">{prod.description || 'Equipo certificado para máxima exigencia industrial.'}</p>
-                  </div>
-                </div>
-                <div className="p-6 pt-0 flex items-center justify-between border-t border-slate-100 mt-4">
-                  <span className="font-extrabold text-slate-900 text-base">Bs. {Number(prod.price).toLocaleString()}</span>
-                  <span className="text-xs font-bold text-[#0d9488] group-hover:translate-x-1 transition-transform">Ver Ficha Técnica →</span>
-                </div>
-              </Link>
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+            {products.map((product, index) => (
+              <ProductCard key={product.id} product={product} eager={index < 3} />
             ))}
           </div>
         )}
       </div>
+    </>
+  );
+}
 
+export default function CatalogPage({ searchParams }: { searchParams: SearchParams }) {
+  return (
+    <div className="min-h-screen bg-slate-50 pb-20">
+      <Suspense fallback={<div className="h-64 animate-pulse bg-slate-900" aria-hidden="true" />}>
+        <CatalogContent searchParams={searchParams} />
+      </Suspense>
     </div>
   );
 }

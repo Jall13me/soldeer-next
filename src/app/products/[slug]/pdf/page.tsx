@@ -1,88 +1,106 @@
-import { PrismaProductRepository } from '@/infrastructure/repositories/PrismaProductRepository';
+import type { Metadata } from 'next';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
+import { PriceTag } from '@/components/products/PriceTag';
+import { PRIMARY_BRANCH } from '@/config/branches';
+import { siteConfig } from '@/config/site';
+import { browseCatalog } from '@/infrastructure/container';
+import { getPrimaryImage, getSpecRows } from '@/lib/product-specs';
 import PrintButton from './PrintButton';
 
-const productRepository = new PrismaProductRepository();
+export const metadata: Metadata = {
+  title: 'Ficha técnica',
+  robots: { index: false, follow: false },
+};
 
-interface PageProps {
-  params: Promise<{ slug: string }>;
-}
-
-export default async function ProductPdfPage({ params }: PageProps) {
+async function ProductSheet({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const product = await productRepository.getProductBySlug(slug);
+  const product = await browseCatalog.detail(slug);
+  if (!product) notFound();
 
-  if (!product) {
-    notFound();
-  }
+  const specs = getSpecRows(product);
 
   return (
-    <div className="min-h-screen bg-white text-slate-800 p-8 font-sans print:p-0">
-      <div className="max-w-3xl mx-auto bg-white border border-slate-200 print:border-none p-8 rounded-2xl shadow-sm">
-        
-        {/* Header del Reporte PDF */}
-        <div className="flex justify-between items-center border-b pb-6 mb-6">
-          <div>
-            <div className="text-2xl font-black text-slate-900 flex items-center">
-              <span className="text-[#0d9488] font-serif italic text-3xl mr-0.5">S</span>oldeer
-            </div>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">Estructuras, Comercio y Servicios</p>
-          </div>
-          <div className="text-right text-xs text-slate-500">
-            <p><strong>Ficha Técnica Oficial B2B</strong></p>
-            <p>Santa Cruz de la Sierra, Bolivia</p>
-          </div>
+    <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm print:border-none print:shadow-none">
+      <header className="mb-6 flex items-center justify-between border-b pb-6">
+        <div>
+          <Image src="/brand/soldeer-logo.webp" alt={siteConfig.legalName} width={640} height={175} className="h-14 w-auto" />
         </div>
-
-        {/* Info del Producto */}
-        <div className="grid grid-cols-2 gap-8 items-center mb-8">
-          <div className="h-64 bg-slate-100 rounded-xl overflow-hidden border">
-            <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover" />
-          </div>
-          <div>
-            <span className="bg-[#0d9488]/10 text-[#0d9488] font-bold text-xs px-3 py-1 rounded-full">
-              {product.categoryName}
-            </span>
-            <h1 className="text-2xl font-extrabold text-slate-900 mt-3">{product.title}</h1>
-            <p className="text-xs text-slate-500 mt-1">SKU / Código: <span className="font-mono font-bold text-slate-800">{product.sku}</span></p>
-            <div className="mt-4 text-xl font-black text-slate-900">
-              Bs. {product.price.toLocaleString()} <span className="text-xs font-normal text-slate-400">Sujeto a cotización empresarial</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Descripción */}
-        <div className="mb-8">
-          <h3 className="font-bold text-slate-900 text-sm mb-2 border-b pb-1">Descripción General</h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            {product.description || 'Equipo certificado para máxima exigencia en la industria metalmecánica y de construcción en Bolivia.'}
+        <div className="text-right text-xs text-slate-500">
+          <p>
+            <strong>Ficha Técnica Oficial B2B</strong>
           </p>
+          <p>Santa Cruz de la Sierra, Bolivia</p>
         </div>
+      </header>
 
-        {/* Especificaciones Técnicas */}
-        <div className="mb-8 bg-slate-50 border rounded-xl p-6">
-          <h3 className="font-bold text-slate-900 text-sm mb-4 border-b pb-2">⚙️ Especificaciones Técnicas de Ingeniería</h3>
-          <div className="grid grid-cols-2 gap-4 text-xs">
-            {product.maxAmperage && <div><span className="text-slate-400 block">Amperaje Máximo</span><strong className="text-slate-800">{product.maxAmperage}</strong></div>}
-            {product.workCycle && <div><span className="text-slate-400 block">Ciclo de Trabajo</span><strong className="text-slate-800">{product.workCycle}</strong></div>}
-            {product.powerSupply && <div><span className="text-slate-400 block">Alimentación</span><strong className="text-slate-800">{product.powerSupply}</strong></div>}
-            {product.weldingProcess && <div><span className="text-slate-400 block">Proceso</span><strong className="text-slate-800">{product.weldingProcess}</strong></div>}
-            {product.presentation && <div><span className="text-slate-400 block">Presentación</span><strong className="text-slate-800">{product.presentation}</strong></div>}
-            {product.dimensions && <div><span className="text-slate-400 block">Medidas</span><strong className="text-slate-800">{product.dimensions}</strong></div>}
+      <div className="mb-8 grid grid-cols-2 items-center gap-8">
+        <div className="relative h-64 overflow-hidden rounded-xl border bg-white">
+          <Image
+            src={getPrimaryImage(product)}
+            alt={product.title}
+            fill
+            sizes="360px"
+            loading="eager"
+            className="object-contain p-2"
+          />
+        </div>
+        <div>
+          <span className="rounded-full bg-brand/10 px-3 py-1 text-xs font-bold text-brand">{product.category.name}</span>
+          <h1 className="mt-3 text-2xl font-extrabold text-slate-900">{product.title}</h1>
+          {product.sku && (
+            <p className="mt-1 text-xs text-slate-500">
+              SKU / Código: <span className="font-mono font-bold text-slate-800">{product.sku}</span>
+            </p>
+          )}
+          <div className="mt-4 flex flex-wrap items-baseline gap-x-2">
+            <PriceTag price={product.price} offerPrice={product.offerPrice} className="text-xl font-black" />
+            <span className="text-xs font-normal text-slate-400">Sujeto a cotización empresarial</span>
           </div>
         </div>
-
-        {/* Pie de Página / Contacto */}
-        <div className="border-t pt-4 text-center text-[10px] text-slate-500">
-          <p>📍 Av. 3er Anillo Interno entre Av. Beni y Alemana #420 | 📞 Teléfono: 75353583 | Santa Cruz, Bolivia</p>
-        </div>
-
-        {/* Botón de Impresión / Guardar PDF (Oculto al imprimir) */}
-        <div className="mt-8 text-center print:hidden">
-          <PrintButton />
-        </div>
-
       </div>
+
+      <section className="mb-8">
+        <h2 className="mb-2 border-b pb-1 text-sm font-bold text-slate-900">Descripción General</h2>
+        <p className="whitespace-pre-line text-xs leading-relaxed text-slate-600">
+          {product.description ?? 'Equipo certificado para máxima exigencia en la industria metalmecánica y de construcción en Bolivia.'}
+        </p>
+      </section>
+
+      {specs.length > 0 && (
+        <section className="mb-8 rounded-xl border bg-slate-50 p-6">
+          <h2 className="mb-4 border-b pb-2 text-sm font-bold text-slate-900">⚙️ Especificaciones Técnicas de Ingeniería</h2>
+          <dl className="grid grid-cols-2 gap-4 text-xs">
+            {specs.map((spec) => (
+              <div key={spec.label}>
+                <dt className="block text-slate-400">{spec.label}</dt>
+                <dd className="font-bold text-slate-800">{spec.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+
+      <footer className="border-t pt-4 text-center text-[10px] text-slate-500">
+        <p>
+          📍 {PRIMARY_BRANCH.address} | 📞 Teléfono: {siteConfig.phone}
+        </p>
+      </footer>
+
+      <div className="mt-8 text-center print:hidden">
+        <PrintButton />
+      </div>
+    </div>
+  );
+}
+
+export default function ProductPdfPage({ params }: { params: Promise<{ slug: string }> }) {
+  return (
+    <div className="min-h-screen bg-white p-8 print:p-0">
+      <Suspense fallback={<div className="mx-auto h-96 max-w-3xl animate-pulse rounded-2xl bg-slate-100" aria-hidden="true" />}>
+        <ProductSheet params={params} />
+      </Suspense>
     </div>
   );
 }

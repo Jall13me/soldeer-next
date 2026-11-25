@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Soldeer — Portal B2B de soldadura industrial
 
-## Getting Started
+Next.js 16 · React 19 · Prisma + PostgreSQL · Tailwind 4 · Clean Architecture
 
-First, run the development server:
+## Arranque rápido
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env          # edita contraseñas y credenciales del admin
+docker compose up -d          # PostgreSQL (127.0.0.1:8090)
+npm install                   # también genera el cliente de Prisma
+npm run db:push               # crea/actualiza las tablas
+npm run dev                   # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Admin: `/admin/products` y `/admin/banners` (pide `ADMIN_USER` / `ADMIN_PASSWORD`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Comando | Qué hace |
+|---|---|
+| `npm run dev` / `build` / `start` | Desarrollo, compilación y producción |
+| `npm run typecheck` | TypeScript sin emitir |
+| `npm run lint` | ESLint |
+| `npm test` | Pruebas de casos de uso, almacenamiento (sharp), auth y utilidades |
+| `npm run db:push` / `db:studio` | Sincronizar esquema / explorar datos |
 
-## Learn More
+## Arquitectura
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+  domain/          Entidades, errores e INTERFACES (repositorios, storage). Sin dependencias externas.
+  application/     Casos de uso: BrowseCatalog, ManageProducts, ManageBanners (reglas de negocio).
+  infrastructure/  Prisma, sharp/disco y container.ts (único lugar que conecta implementaciones).
+  app/             Rutas de Next (presentación): páginas finas + Server Actions.
+  components/      UI. config/ datos del negocio. lib/ utilidades puras.
+tests/             node:test + repositorios/almacenamiento falsos (sin BD).
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Regla de dependencias: `app/components → application → domain ← infrastructure`.
+Para cambiar el almacenamiento (S3, Cloudinary) basta una nueva clase que implemente
+`IStorageService` y cambiar una línea en `infrastructure/container.ts`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Imágenes
 
-## Deploy on Vercel
+El admin acepta JPG/PNG/WebP/AVIF (máx. 10 MB c/u), valida el contenido real y las
+convierte a **WebP** (banner ≤1920 px, producto ≤1600 px). Se guardan en `UPLOAD_DIR`
+(por defecto `./storage/uploads`, fuera de `public/`) y se sirven por `/uploads/*`.
+En producción monta esa carpeta como volumen persistente.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Medidas ideales: banner **1920×700**, producto **1200×900 (4:3, fondo blanco)**, logo SVG/WebP.

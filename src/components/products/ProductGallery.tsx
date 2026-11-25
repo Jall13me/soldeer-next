@@ -1,61 +1,84 @@
-'use client'
+'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
+import { PLACEHOLDER_IMAGE } from '@/lib/product-specs';
+import { cn } from '@/lib/cn';
 
 interface ProductGalleryProps {
   images: string[];
   title: string;
 }
 
-export function ProductGallery({ images, title }: ProductGalleryProps) {
-  const [selectedImage, setSelectedImage] = useState(images[0] || '/uploads/default-machine.jpg');
-  const [isHovered, setIsHovered] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+interface Point {
+  x: number;
+  y: number;
+}
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
-    setMousePosition({ x, y });
+export function ProductGallery({ images, title }: ProductGalleryProps) {
+  const gallery = images.length > 0 ? images : [PLACEHOLDER_IMAGE];
+  const [selected, setSelected] = useState(0);
+  const [zoomOrigin, setZoomOrigin] = useState<Point | null>(null);
+  const current = gallery[Math.min(selected, gallery.length - 1)];
+  const canZoom = current !== PLACEHOLDER_IMAGE;
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = event.currentTarget.getBoundingClientRect();
+    setZoomOrigin({
+      x: ((event.clientX - left) / width) * 100,
+      y: ((event.clientY - top) / height) * 100,
+    });
   };
 
   return (
     <div className="space-y-4">
-      {/* Imagen Principal con Zoom Interactivo */}
       <div
-        className="relative w-full h-[420px] bg-slate-100 border border-slate-200 rounded-2xl overflow-hidden shadow-sm cursor-zoom-in flex items-center justify-center"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onMouseMove={handleMouseMove}
+        className={cn(
+          'relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm',
+          canZoom && 'cursor-zoom-in',
+        )}
+        onMouseMove={canZoom ? handleMouseMove : undefined}
+        onMouseLeave={() => setZoomOrigin(null)}
       >
-        <img
-          src={selectedImage}
+        <Image
+          src={current}
           alt={title}
-          className="w-full h-full object-cover transition-transform duration-100 ease-out"
+          fill
+          sizes="(min-width: 768px) 50vw, 100vw"
+          loading="eager"
+          fetchPriority="high"
+          className="object-contain p-3 transition-transform duration-100 ease-out"
           style={{
-            transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`,
-            transform: isHovered ? 'scale(2.2)' : 'scale(1)',
+            transformOrigin: zoomOrigin ? `${zoomOrigin.x}% ${zoomOrigin.y}%` : 'center',
+            transform: zoomOrigin ? 'scale(2.2)' : 'scale(1)',
           }}
         />
-        {!isHovered && (
-          <span className="absolute bottom-3 right-3 bg-slate-900/70 backdrop-blur text-white text-[10px] px-2.5 py-1 rounded-md font-medium">
+        {canZoom && !zoomOrigin && (
+          <span className="pointer-events-none absolute bottom-3 right-3 hidden rounded-md bg-slate-900/70 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur md:block">
             🔍 Pasa el cursor para hacer zoom
           </span>
         )}
       </div>
 
-      {/* Miniaturas de la Galería */}
-      <div className="grid grid-cols-3 gap-3">
-        {images.map((img, idx) => (
-          <button
-            key={idx}
-            onClick={() => setSelectedImage(img)}
-            className={`h-24 bg-slate-100 border rounded-xl overflow-hidden transition ${selectedImage === img ? 'border-[#0d9488] ring-2 ring-[#0d9488]/30 shadow-sm' : 'border-slate-200 hover:border-slate-400'}`}
-          >
-            <img src={img} alt="" className="w-full h-full object-cover" />
-          </button>
-        ))}
-      </div>
+      {gallery.length > 1 && (
+        <div className="grid grid-cols-4 gap-3">
+          {gallery.map((src, index) => (
+            <button
+              key={src}
+              type="button"
+              onClick={() => setSelected(index)}
+              aria-label={`Ver imagen ${index + 1} de ${gallery.length}`}
+              aria-pressed={src === current}
+              className={cn(
+                'relative aspect-[4/3] overflow-hidden rounded-xl border bg-white transition',
+                src === current ? 'border-brand shadow-sm ring-2 ring-brand/30' : 'border-slate-200 hover:border-slate-400',
+              )}
+            >
+              <Image src={src} alt="" fill sizes="120px" className="object-contain p-1" />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
